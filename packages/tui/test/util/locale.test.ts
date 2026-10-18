@@ -18,3 +18,10 @@ test("rolls the compact form over at the rounding boundary", () => {
   expect(Locale.number(999950)).toBe("1.0M")
   expect(Locale.number(1000000)).toBe("1.0M")
 })
+
+test("rolls durations over to minutes at the rounding boundary", () => {
+  expect(Locale.duration(59949)).toBe("59.9s")
+  expect(Locale.duration(59950)).toBe("1m 0s")
+  expect(Locale.duration(59999)).toBe("1m 0s")
+  expect(Locale.duration(60000)).toBe("1m 0s")
+})
