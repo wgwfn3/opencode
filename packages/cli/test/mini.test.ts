@@ -149,6 +149,52 @@ describe("mini command", () => {
     expect(result.stderr).not.toContain("You must provide a message")
   })
 
+  test("sends prompt text after the argument separator once", async () => {
+    let title: unknown
+    const server = Bun.serve({
+      port: 0,
+      async fetch(request) {
+        const url = new URL(request.url)
+        if (url.pathname === "/api/info")
+          return Response.json({
+            version: OPENCODE_VERSION,
+            pid: process.pid,
+            urls: [],
+            paths: { tmp: "/tmp/opencode" },
+          })
+        if (url.pathname === "/api/location")
+          return Response.json({ directory: process.cwd(), project: { id: "global", directory: process.cwd() } })
+        if (url.pathname === "/api/session" && request.method === "POST")
+          return Response.json({
+            data: {
+              id: "ses_1",
+              projectID: "global",
+              cost: 0,
+              tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+              time: { created: 0, updated: 0 },
+              title: "",
+              location: { directory: process.cwd() },
+            },
+          })
+        // An empty --title makes run name the new session after the assembled message.
+        if (url.pathname === "/api/session/ses_1" && request.method === "PATCH") {
+          title = ((await request.json()) as { title?: unknown }).title
+          return new Response("boom", { status: 500 })
+        }
+        return new Response(undefined, { status: 404 })
+      },
+    })
+
+    try {
+      const result = await cli(["run", "--server", server.url.toString(), "--title", "", "hello", "--", "--world"])
+
+      expect(result.exitCode).toBe(1)
+      expect(title).toBe("hello --world")
+    } finally {
+      server.stop(true)
+    }
+  })
+
   test("passes explicit selections to session creation without catalog preflight", async () => {
     const requests: string[] = []
     let session: unknown
