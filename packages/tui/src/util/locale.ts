@@ -30,9 +30,11 @@ export function duration(input: number) {
   if (input < 1000) {
     return `${input}ms`
   }
-  if (input < 60000) {
+  // 59950+ would round to "60.0s"
+  if (input < 59950) {
     return `${(input / 1000).toFixed(1)}s`
   }
+  if (input < 60000) return "1m 0s"
   if (input < 3600000) {
     const minutes = Math.floor(input / 60000)
     const seconds = Math.floor((input % 60000) / 1000)
